@@ -1,0 +1,150 @@
+analysis:
+  run_name: jaam_ohca_analysis
+  dataset_csv_path: runs/datasets/jaam_2021_dataset.csv
+  output_dir: runs/jaam_ohca_analysis
+  seed: 20260727
+  probability_epsilon: 0.000001
+
+  treatment:
+    source: "CAG施行"
+    treated_code: 1
+    untreated_code: 2
+
+  identifiers:
+    facility: "施設番号(JAAM)"
+    canonical_year: "年(JAAM)"
+
+  folds:
+    outer: 5
+    inner: 5
+
+  outcomes:
+    survival_30d:
+      source: "発症1ヵ月(30日)後生存(JAAM)"
+      label: "30-day survival"
+    neurologic_30d:
+      source: "発症1ヵ月(30日)後生存の成人社会復帰(JAAM)"
+      label: "30-day CPC 1–2"
+    survival_90d:
+      source: "発症90日後生存"
+      label: "90-day survival"
+    neurologic_90d:
+      source: "発症90日後生存の成人社会復帰"
+      label: "90-day CPC 1–2"
+  central_outcome: neurologic_90d
+
+  features:
+    main: phase1_phase2
+    early_baseline: phase1_early_ecg
+    early_ecg_source: "病院収容後の最初に確認した心電図波形"
+    redundant_early_ecg_sources:
+      - "病院収容後の最初に確認した心電図波形2"
+      - "病院収容後の最初に確認した心電図波形3"
+    engineered_early_ecg: "__early_inhospital_ecg"
+
+  lightgbm_probability:
+    objective: binary
+    n_estimators: 250
+    learning_rate: 0.03
+    num_leaves: 15
+    min_child_samples: 50
+    subsample: 0.85
+    subsample_freq: 1
+    colsample_bytree: 0.85
+    reg_alpha: 0.1
+    reg_lambda: 1.0
+    max_bin: 127
+    verbosity: -1
+    deterministic: true
+    force_col_wise: true
+    n_jobs: 8
+
+  lightgbm_effect:
+    objective: huber
+    alpha: 0.9
+    n_estimators: 250
+    learning_rate: 0.03
+    num_leaves: 15
+    min_child_samples: 50
+    subsample: 0.85
+    subsample_freq: 1
+    colsample_bytree: 0.85
+    reg_alpha: 0.1
+    reg_lambda: 1.0
+    max_bin: 127
+    verbosity: -1
+    deterministic: true
+    force_col_wise: true
+    n_jobs: 8
+
+  logistic_propensity:
+    C: 1.0
+    max_iter: 2000
+
+  inference:
+    confidence_level: 0.95
+    cluster_multiplier_repetitions: 5000
+    cluster_multiplier_seed: 20260728
+
+  sensitivity:
+    propensity_trimming:
+      - [0.01, 0.99]
+      - [0.025, 0.975]
+      - [0.05, 0.95]
+    iptw_truncation_percentiles:
+      - [0.01, 0.99]
+      - [0.025, 0.975]
+    ite_thresholds: [0.00, 0.01, 0.02, 0.05]
+    ite_clip: [-1.0, 1.0]
+
+  temporal_validation:
+    development_years: [2014, 2015, 2016, 2017, 2018]
+    validation_year: 2019
+
+  multiple_imputation:
+    datasets: 50
+    iterations: 20
+    convergence_diagnostic_datasets: 5
+    max_datasets_if_unstable: 100
+    seed: 20260729
+    ite_scale_percentage_points: 5
+    model3_predictors:
+      - "年齢(JAAM)"
+      - "性別"
+      - "目撃"
+      - "あり／なし"
+      - "波形種別"
+      - "病院収容後の心拍再開"
+      - "__early_inhospital_ecg"
+      - "pH(ROSC前初回採血)"
+      - "LacROSC前初回採血の単位統一後"
+    auxiliary_predictors:
+      - "病院種別(JAAM)"
+      - "病床数"
+      - "ICU病床数"
+      - "直近1年間の搬送心停止症例数"
+      - "曜日"
+      - "休日(土日含む)"
+      - "救急救命士乗車"
+      - "医師の乗車"
+      - "バイスタンダー種別"
+      - "バイスタンダーによる除細動"
+      - "口頭指示あり"
+      - "気道確保"
+      - "静脈路確保"
+      - "薬剤投与"
+      - "除細動"
+      - "目撃から病院収容までの時間"
+      - "病院収容後の意識状態EVM"
+      - "温度2"
+      - "アドレナリン総投与量(CRITICAL)"
+      - "PaCO2(ROSC前初回採血)"
+      - "PaO2(ROSC前初回採血)"
+      - "Glu(ROSC前初回採血)"
+      - "BUN(病院収容時)"
+      - "Cr(病院収容時)"
+      - "Alb(病院収容時)"
+      - "K(病院収容時)"
+      - "pH(ROSC後初回採血)"
+      - "LacROSC後初回採血の単位統一後"
+      - "心拍再開後のＳＴ上昇の有無"
